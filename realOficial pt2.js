@@ -48,7 +48,10 @@ function main(){
         faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao);
     } else{
         // vai para a fase II;
-        faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao)
+        if(faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao)){
+
+        }
+        faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao);
     }
 
 }
@@ -331,24 +334,112 @@ function verificaFaseI(array, vetorExpressaoPrincipal, valoresDesigualdade, matr
     return [false, vetorExpressaoPrincipal, matrizCompleta];
 }
 
+function faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao){
+    
+}
+
 function faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao){
+    let iteracao = 1;
+    while(true){
+        console.log(`faseII, iteração: ${iteracao}`);
 
-    let [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica] = criarMatrizBasica(matrizCompleta);
-    console.table(matrizBasica);
-    console.table(matrizNaoBasica);
+        let [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica] = criarMatrizBasica(matrizCompleta);
+        console.table(matrizBasica);
+        console.table(matrizNaoBasica);
+    
+        let inversaBasica = criarMatrizIdentidade(matrizBasica, criarMatrizIdentidade(matrizBasica));
+        //serve para colocar deixar em uma coluna porme com vairas linhas
+        let vetorB = valoresDesigualdade.map(i => [i])
+        let xBasico = multiplicaMatriz(inversaBasica, vetorB);
+        console.table("x basico:");
+        console.table(xBasico);
+    
+        //pega os custos da expressão principal e atribui conforme as colunas da basica, já transformando em matriz de colunas para que possa ser multiplicado
+        let custoBasico = [colunasParaBasica.map(i => vetorExpressaoPrincipal[i])];
+        console.log("custo nao basico: ", custoBasico);
+        let yt = multiplicaMatriz(custoBasico, inversaBasica);
+        console.table(yt)
+    
+        let custoNaoBasico = [colunasParaNaoBasica.map(i => vetorExpressaoPrincipal[i])];
+        console.log("custo nao basico: ", custoNaoBasico);
 
-    let inversaBasica = criarMatrizIdentidade(matrizBasica, criarMatrizIdentidade(matrizBasica));
-    //serve para colocar deixar em uma coluna porme com vairas linhas
-    let vetorB = valoresDesigualdade.map(i => [i])
-    let xBasico = multiplicaMatriz(inversaBasica, vetorB);
-    console.table(xBasico);
+        //descoberta de aNj (valores dos indices da não básicas direto da matrizCompleta);
+        let aNj = Array(matrizCompleta.length).fill(0).map(() => Array(colunasParaNaoBasica.length).fill(0));
+        for(let i = 0; i < matrizCompleta.length; i++){
+            for(let j = 0; j < colunasParaNaoBasica.length; j++){
+                aNj[i][j] = matrizCompleta[colunasParaBasica[i]][j];
+            }
+        }
+        console.table(aNj);
+        
+        //multiplicação de yt * aNj
+        let multiplicacao = multiplicaMatriz(yt, aNj);
+        console.table(multiplicacao)
+        let custoRelativo = [];
+        // resolve o custo Relativo (cNj ← cNj − λT aNj )
+        for(let i = 0; i < custoNaoBasico[0].length; i++){
+            custoRelativo.push(custoNaoBasico[0][i] - multiplicacao[0][i]);
+        }
+        console.table("custoRelativo:");
+        console.table(custoRelativo);
 
-    //pega os custos da expressão principal e atribui conforme as colunas da basica, já transformando em matriz de colunas para que possa ser multiplicado
-    let custoBasico = [colunasParaBasica.map(i => vetorExpressaoPrincipal[i])];
-    console.log(custoBasico)
-    let yt = multiplicaMatriz(custoBasico, inversaBasica);
-    console.table(yt)
+        //definir qual variável vai entrar na base (de acordo com o menor valor de custoRelativo)
+        let indiceVariavelEntrada = custoRelativo.indexOf(Math.min(...custoRelativo));
+        let variavelEntrada = (Math.min(...custoRelativo));
+        console.log("indice da variavel de entrada:")
+        console.log(indiceVariavelEntrada)
+        console.log("valor minimo das variaveis:")
+        console.log(variavelEntrada)
 
-    let custoNaoBasico = [colunasParaNaoBasica.map(i => vetorExpressaoPrincipal[i])];
-    // tem q fazer o custo relativo aq
+        //teste de otimilidade
+        if(variavelEntrada >= 0){
+            console.log(`solução ótima encontrada na iteração: ${iteracao}`);
+            return variavelEntrada;//n sei se tenho q retornar isso aq mesmo, mas por enquanto é isso q vai ser
+        }
+
+        // aNk é a coluna k da matriz N (ou seja, a coluna k de aNj) foi feito pra poder descobrir a direção do simplex
+        let aNk = aNj.map(linha => [linha[indiceVariavelEntrada]]);
+        console.table(aNk);
+        
+        //calculo direção simplex
+        let y = multiplicaMatriz(inversaBasica, aNk);
+        console.table("calculo da direção simplex (y):");
+        console.table(y);
+
+        //determinação do passo e variável a sair da base(ve se tem algum valor y<=0)
+        if(y.every(elemento => elemento<=0)){
+            console.log(`para para paraaaaaaa, problema não tem solucão ótima finita`);
+            console.log(y.map(elemento => elemento<=0));
+            return null;
+        }
+        let epsilon = Infinity;
+        let indiceSaida = -1
+        // calcular essa porrinha aq (página 70 do pdf, passo 5)
+        for(let i = 0; i < y.length; i++){
+            if(y[i][0] > 0){
+                let razao = xBasico[i][0]/y[i][0];
+                console.log(razao)
+                if(razao < epsilon){
+                    epsilon = razao;
+                    indiceSaida = i;
+                    console.log(`Epsilon (ε̂): ${epsilon.toPrecision(3)}`);
+                    console.log(`Índice da variável que sai da base: ${indiceSaida}`);
+                }
+            }
+        }
+
+        
+        //passo 6:
+        // Atualiza índices das colunas da base e não-base
+        let entrando = colunasParaNaoBasica[indiceVariavelEntrada];
+        let saindo = colunasParaBasica[indiceSaida];
+        colunasParaBasica[indiceSaida] = entrando;
+        colunasParaNaoBasica[indiceVariavelEntrada] = saindo;
+
+        console.log(`Variável que entra na base: x${entrando + 1}`);
+        console.log(`Variável que sai da base: x${saindo + 1}`);
+
+        
+        iteracao++;
+    }
 }
