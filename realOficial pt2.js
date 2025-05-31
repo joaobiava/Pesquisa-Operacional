@@ -308,7 +308,7 @@ function criarMatrizBasica(matriz) {
             [indicesColunas[i], indicesColunas[j]] = [indicesColunas[j], indicesColunas[i]];
         }
 
-        console.log(indicesColunas);
+        console.log("veotr dos indices das colunas após aleatorização: ", indicesColunas);
 
         colunasParaBasica = indicesColunas.slice(0, numLinhas);
         matrizBasica = matriz.map(linha => 
@@ -363,7 +363,7 @@ function verificaFaseI(array, vetorExpressaoPrincipal, valoresDesigualdade, matr
 function faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao){
     let iteracao = 1;
     let [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica] = criarMatrizBasica(matrizCompleta);
-    while(true){
+    while(iteracao < 100){
         console.log(`faseII, iteração: ${iteracao}`);
         
         console.log(colunasParaBasica)
@@ -429,21 +429,28 @@ function faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, ti
             console.log(`Solução ótima encontrada na iteração: ${iteracao}`);
 
             // Calcula o valor ótimo da função objetivo: z = cB^T * xB
-            let z = 0;
+            let valorOtimo = 0;
             for(let i = 0; i < custoBasico[0].length; i++){
-                z += custoBasico[0][i] * xBasico[i][0];
+                valorOtimo += custoBasico[0][i] * xBasico[i][0];
             }
             if(tipoOtimizacao === "max"){
-                z *= -1;
+                valorOtimo *= -1;
             }
-            console.log(`Valor ótimo da função objetivo (z): ${-z}`);
 
-            return {
-                valorOtimo: z,
-                xBasico,
-                colunasParaBasica,
+            let vetorSolucao = Array(vetorExpressaoPrincipal.length).fill(0);
+            for(let i = 0; i < xBasico.length; i++){
+                const indiceVariavel = colunasParaBasica[i];
+                vetorSolucao[indiceVariavel] = xBasico[i][0];
+            }
+            
+            console.log(vetorSolucao)
+            console.log(`Valor ótimo da função objetivo (z): ${valorOtimo}`);
+
+            return [
+                valorOtimo,
+                vetorSolucao,
                 iteracao
-            };
+            ];
 
         }
 
