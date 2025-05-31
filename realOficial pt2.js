@@ -45,12 +45,12 @@ function main(){
 
     //verifica se é necessário a fase 1 ou não, retorna true ou false.
     if(verificaFaseI(array, vetorExpressaoPrincipal, valoresDesigualdade, matrizCompleta)[0]){
-        faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao);
+        //faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao);
     } else{
         // vai para a fase II;
-        if(faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao)){
+        /*if(faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao)){
 
-        }
+        }*/
         faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao);
     }
 
@@ -262,15 +262,15 @@ function criarMatrizInversa(matrizQuadrada, identidade){
 }
 
 function multiplicaMatriz(matriz1, matriz2){
-    let matrizFinal = Array(matriz1.length).fill(null).map(() => Array(matriz2[0].length).fill(0));
+    let matrizFinal = Array(matriz1.length).fill(0).map(() => Array(matriz2[0].length).fill(0));
     if(matriz1[0].length === matriz2.length){
         for(let i = 0; i<matriz1.length; i++){
             for(let j = 0; j<matriz2[0].length; j++){
                 let somaMultiplicacao = 0;
                 for(let k = 0; k<matriz1[0].length; k++){
-                    somaMultiplicacao = somaMultiplicacao + (matriz1[i][k] * matriz2[k][j])
+                    somaMultiplicacao += matriz1[i][k] * matriz2[k][j];
                 }
-                matrizFinal[i][j] = parseFloat(somaMultiplicacao.toPrecision(3));
+                matrizFinal[i][j] = somaMultiplicacao;
             }
         }
     } else{
@@ -279,23 +279,49 @@ function multiplicaMatriz(matriz1, matriz2){
     return matrizFinal;
 }
 
-function criarMatrizBasica(matriz){
-    // cria um vetor com os indices de acordo com a quantidade de X
-    let indicesColunas = [...Array(matriz[0].length).keys()];
+function criarMatrizBasica(matriz) {
+    const numLinhas = matriz.length;
+    const numColunas = matriz[0].length;
 
-    console.log('\nindice de colunas organizado para da matriz básica e não básica: ', indicesColunas)
+    const indicesColunas = [...Array(numColunas).keys()];
+    let colunasParaBasica = indicesColunas.slice(0, numLinhas);
+    let colunasParaNaoBasica = indicesColunas.slice(numLinhas);
 
-    console.log("aqui está a matriz completa");
-    console.table(matriz);
-    // considerando [1, 2, 3, 4, 5]
-    // cria do elemento 0 até o tamnaho da matriz = [1, 2, 3]
-    const colunasParaBasica = indicesColunas.slice(0, matriz.length);
-    // cria a partir do tamanho da matriz até o final = [4, 5]
-    const colunasParaNaoBasica = indicesColunas.slice(matriz.length);
-    
-    //crias a mtriaz basica  e n basica percorredno as linhas da matriz original e então analisando quais as colunas desejadas
-    const matrizBasica = matriz.map(linha => colunasParaBasica.map(index => linha[index]));
-    const matrizNaoBasica = matriz.map(linha => colunasParaNaoBasica.map(index => linha[index]));
+    let matrizBasica = matriz.map(linha => 
+        colunasParaBasica.map(i => linha[i])
+    );
+    console.log(matrizBasica)
+
+    let matrizNaoBasica = matriz.map(linha => 
+        colunasParaNaoBasica.map(i => linha[i])
+    );
+    console.log(matrizNaoBasica)
+
+    // Verifica determinante
+    let tentativa = 0
+    while (calcularDeterminante(matrizBasica) === 0 && tentativa < 100) {
+        console.log("Matriz básica inicial tem determinante 0. Buscando outra base...");
+
+        //randomiza as colunas se determinante = 0
+        for (let i = indicesColunas.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indicesColunas[i], indicesColunas[j]] = [indicesColunas[j], indicesColunas[i]];
+        }
+
+        console.log(indicesColunas);
+
+        colunasParaBasica = indicesColunas.slice(0, numLinhas);
+        matrizBasica = matriz.map(linha => 
+            colunasParaBasica.map(i => linha[i])
+        );
+        
+        colunasParaNaoBasica = indicesColunas.slice(numLinhas);
+        matrizNaoBasica = matriz.map(linha => 
+            colunasParaNaoBasica.map(i => linha[i])
+        );
+
+        tentativa++;
+    }
 
     return [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica];
 }
@@ -334,21 +360,22 @@ function verificaFaseI(array, vetorExpressaoPrincipal, valoresDesigualdade, matr
     return [false, vetorExpressaoPrincipal, matrizCompleta];
 }
 
-function faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao){
-    
-}
-
 function faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao){
     let iteracao = 1;
+    let [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica] = criarMatrizBasica(matrizCompleta);
     while(true){
         console.log(`faseII, iteração: ${iteracao}`);
-
-        let [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica] = criarMatrizBasica(matrizCompleta);
+        
+        console.log(colunasParaBasica)
+        console.log(colunasParaNaoBasica)
+        console.table(matrizCompleta);
         console.table(matrizBasica);
         console.table(matrizNaoBasica);
     
-        let inversaBasica = criarMatrizIdentidade(matrizBasica, criarMatrizIdentidade(matrizBasica));
+        let inversaBasica = criarMatrizInversa(matrizBasica, criarMatrizIdentidade(matrizBasica));
         //serve para colocar deixar em uma coluna porme com vairas linhas
+        console.log("inversa da basica ai o")
+        console.table(inversaBasica);
         let vetorB = valoresDesigualdade.map(i => [i])
         let xBasico = multiplicaMatriz(inversaBasica, vetorB);
         console.table("x basico:");
@@ -356,24 +383,30 @@ function faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, ti
     
         //pega os custos da expressão principal e atribui conforme as colunas da basica, já transformando em matriz de colunas para que possa ser multiplicado
         let custoBasico = [colunasParaBasica.map(i => vetorExpressaoPrincipal[i])];
-        console.log("custo nao basico: ", custoBasico);
+        console.log("custo basico: ", custoBasico);
         let yt = multiplicaMatriz(custoBasico, inversaBasica);
+        console.log("o tal do yt, nao faço a minima ideia do q isso significa")
         console.table(yt)
     
         let custoNaoBasico = [colunasParaNaoBasica.map(i => vetorExpressaoPrincipal[i])];
         console.log("custo nao basico: ", custoNaoBasico);
 
         //descoberta de aNj (valores dos indices da não básicas direto da matrizCompleta);
-        let aNj = Array(matrizCompleta.length).fill(0).map(() => Array(colunasParaNaoBasica.length).fill(0));
-        for(let i = 0; i < matrizCompleta.length; i++){
-            for(let j = 0; j < colunasParaNaoBasica.length; j++){
-                aNj[i][j] = matrizCompleta[colunasParaBasica[i]][j];
+        let aNj = Array(matrizCompleta.length).fill().map(() => 
+            Array(colunasParaNaoBasica.length).fill(0)
+        );
+        for(let i = 0; i < matrizCompleta.length; i++) {
+            for(let j = 0; j < colunasParaNaoBasica.length; j++) {
+                // Verifica se os índices são válidos
+                aNj[i][j] = matrizCompleta[i][colunasParaNaoBasica[j]];
             }
         }
+        console.log("valores muito locos de aNj aqui");
         console.table(aNj);
         
         //multiplicação de yt * aNj
         let multiplicacao = multiplicaMatriz(yt, aNj);
+        console.log("multiplicação muito loca de yt * aNj")
         console.table(multiplicacao)
         let custoRelativo = [];
         // resolve o custo Relativo (cNj ← cNj − λT aNj )
@@ -393,12 +426,30 @@ function faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, ti
 
         //teste de otimilidade
         if(variavelEntrada >= 0){
-            console.log(`solução ótima encontrada na iteração: ${iteracao}`);
-            return variavelEntrada;//n sei se tenho q retornar isso aq mesmo, mas por enquanto é isso q vai ser
+            console.log(`Solução ótima encontrada na iteração: ${iteracao}`);
+
+            // Calcula o valor ótimo da função objetivo: z = cB^T * xB
+            let z = 0;
+            for(let i = 0; i < custoBasico[0].length; i++){
+                z += custoBasico[0][i] * xBasico[i][0];
+            }
+            if(tipoOtimizacao === "max"){
+                z *= -1;
+            }
+            console.log(`Valor ótimo da função objetivo (z): ${-z}`);
+
+            return {
+                valorOtimo: z,
+                xBasico,
+                colunasParaBasica,
+                iteracao
+            };
+
         }
 
         // aNk é a coluna k da matriz N (ou seja, a coluna k de aNj) foi feito pra poder descobrir a direção do simplex
         let aNk = aNj.map(linha => [linha[indiceVariavelEntrada]]);
+        console.log("sla q q é o aNk tbm:")
         console.table(aNk);
         
         //calculo direção simplex
@@ -407,7 +458,7 @@ function faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, ti
         console.table(y);
 
         //determinação do passo e variável a sair da base(ve se tem algum valor y<=0)
-        if(y.every(elemento => elemento<=0)){
+        if(y.every(elemento => elemento <= 0)){
             console.log(`para para paraaaaaaa, problema não tem solucão ótima finita`);
             console.log(y.map(elemento => elemento<=0));
             return null;
@@ -422,9 +473,11 @@ function faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, ti
                 if(razao < epsilon){
                     epsilon = razao;
                     indiceSaida = i;
-                    console.log(`Epsilon (ε̂): ${epsilon.toPrecision(3)}`);
+                    console.log(`Epsilon (ε̂): ${epsilon}`);
                     console.log(`Índice da variável que sai da base: ${indiceSaida}`);
                 }
+            } else{
+                console.log(`nao deu pra dividir nessa iteração ${i+1} por causa desse merda: ${y[i][0]}`);
             }
         }
 
@@ -435,11 +488,22 @@ function faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, ti
         let saindo = colunasParaBasica[indiceSaida];
         colunasParaBasica[indiceSaida] = entrando;
         colunasParaNaoBasica[indiceVariavelEntrada] = saindo;
+        console.log(colunasParaBasica)
+        console.log(colunasParaNaoBasica)
+
+        matrizBasica = matrizCompleta.map(linha => 
+            colunasParaBasica.map(i => linha[i])
+        );
+        console.log(matrizBasica)
+
+        matrizNaoBasica = matrizCompleta.map(linha => 
+            colunasParaNaoBasica.map(i => linha[i])
+        );
+        console.log(matrizNaoBasica)
 
         console.log(`Variável que entra na base: x${entrando + 1}`);
         console.log(`Variável que sai da base: x${saindo + 1}`);
 
-        
         iteracao++;
     }
 }
