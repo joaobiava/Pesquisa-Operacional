@@ -37,23 +37,46 @@ function main(){
     console.log('matriz após multiplicação');
     console.table(matrizMultiplicada);*/
 
-    let [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica] = criarMatrizBasica(matrizCompleta);
+    /*let [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica] = criarMatrizBasica(matrizCompleta);
     console.log("Matriz B = matriz básica (quadrada):");
     console.table(matrizBasica);
     console.log("Matriz N = matriz não básica (colunas restantes):");
-    console.table(matrizNaoBasica);
+    console.table(matrizNaoBasica);*/
 
-    //verifica se é necessário a fase 1 ou não, retorna true ou false.
+    //verifica se é necessário a fase 1 ou não, retorna true ou false com mais algumas alterações no vetorB e etc.
     if(verificaFaseI(array, vetorExpressaoPrincipal, valoresDesigualdade, matrizCompleta)[0]){
-        //faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao);
+        faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao);
     } else{
-        // vai para a fase II;
-        /*if(faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao)){
+        //caso tenha ido direto para a fase2, ele vai aleatorizar a matriz basica e nao basica
+        const numLinhas = matrizCompleta.length;
+        const numColunas = matrizCompleta[0].length;
 
-        }*/
-        faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao);
+        const indicesColunas = [...Array(numColunas).keys()];
+
+        for (let i = indicesColunas.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indicesColunas[i], indicesColunas[j]] = [indicesColunas[j], indicesColunas[i]];
+        }
+        //monta de acordo com os valores aleatorizados das colunas;
+        let colunasParaBasica = indicesColunas.slice(0, numLinhas);
+        let colunasParaNaoBasica = indicesColunas.slice(numLinhas);
+
+        console.log("vetor dos indices das colunas após aleatorização: ", indicesColunas);
+        console.log("colunas para basica:", colunasParaBasica)
+        console.log("colunas para nao basica:", colunasParaNaoBasica)
+
+        let matrizBasica = matrizCompleta.map(linha => 
+            colunasParaBasica.map(i => linha[i])
+        );
+        console.log(`matriz basica: `, matrizBasica)
+
+        let matrizNaoBasica = matrizCompleta.map(linha => 
+            colunasParaNaoBasica.map(i => linha[i])
+        );
+        console.log(`matriz nao basica: `, matrizNaoBasica)
+
+        faseII(matrizCompleta, matrizBasica, colunasParaBasica, matrizNaoBasica, colunasParaNaoBasica, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao);
     }
-
 }
 
 function lerTxt(){
@@ -297,7 +320,7 @@ function criarMatrizBasica(matriz) {
     );
     console.log(matrizNaoBasica)
 
-    // Verifica determinante
+    // Verifica determinante para caso igual a 0 na matriz basica, ele aleatoriza as colunas para que seja possivel a resolução
     let tentativa = 0
     while (calcularDeterminante(matrizBasica) === 0 && tentativa < 100) {
         console.log("Matriz básica inicial tem determinante 0. Buscando outra base...");
@@ -321,6 +344,11 @@ function criarMatrizBasica(matriz) {
         );
 
         tentativa++;
+    }
+
+    if(calcularDeterminante(matrizBasica) === 0){
+        console.log("nao foi encontrada nenhuma matriz básica com determinante diferente de 0");
+        return null;
     }
 
     return [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica];
@@ -360,15 +388,14 @@ function verificaFaseI(array, vetorExpressaoPrincipal, valoresDesigualdade, matr
     return [false, vetorExpressaoPrincipal, matrizCompleta];
 }
 
-function faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao){
+function faseII(matrizCompleta, matrizBasica, colunasParaBasica, matrizNaoBasica, colunasParaNaoBasica, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao){
     let iteracao = 1;
-    let [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica] = criarMatrizBasica(matrizCompleta);
     while(iteracao < 100){
         console.log(`faseII, iteração: ${iteracao}`);
         
+        console.table(matrizCompleta);
         console.log(colunasParaBasica)
         console.log(colunasParaNaoBasica)
-        console.table(matrizCompleta);
         console.table(matrizBasica);
         console.table(matrizNaoBasica);
     
@@ -501,16 +528,66 @@ function faseII(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, ti
         matrizBasica = matrizCompleta.map(linha => 
             colunasParaBasica.map(i => linha[i])
         );
-        console.log(matrizBasica)
+        console.table(matrizBasica)
 
         matrizNaoBasica = matrizCompleta.map(linha => 
             colunasParaNaoBasica.map(i => linha[i])
         );
-        console.log(matrizNaoBasica)
+        console.table(matrizNaoBasica)
 
         console.log(`Variável que entra na base: x${entrando + 1}`);
         console.log(`Variável que sai da base: x${saindo + 1}`);
 
         iteracao++;
     }
+}
+
+function faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao){
+    let m = matrizCompleta.length;
+    let n = matrizCompleta[0].length;
+    console.log(m, n);
+
+    //criação funcão objetivo
+    let variaveisTotais = n + m;
+    let funcaoObjetivo = Array(variaveisTotais).fill(0);
+    for (let i = n; i < variaveisTotais; i++) {
+        funcaoObjetivo[i] = 1; // Minimiza a soma das variáveis artificiais
+    }
+    console.log(funcaoObjetivo);
+
+    //restrições
+    for(let i = 0; i < m; i++){
+        for(let j = 0; j < m; j++){
+            if (i === j) {
+                matrizCompleta[i].push(1);
+            } else {
+                matrizCompleta[i].push(0);
+            }
+        }
+    }
+    console.table(matrizCompleta)
+
+    const variaveisBasicas = [];
+    for (let i = 0; i < m; i++) {
+        variaveisBasicas.push(n + 1 + i);  // x_{n+1}, x_{n+2}, ..., x_{n+m}
+    }
+    const variaveisNaoBasicas = [];
+    for (let i = 0; i < n; i++) {
+        variaveisNaoBasicas.push(i + 1);  // x1, x2, ..., xn
+    }
+    console.log(variaveisBasicas)
+    console.log(variaveisNaoBasicas)
+
+    let [matrizBasica, matrizNaoBasica] = criarMatrizBasica(matrizCompleta);
+    console.table(matrizBasica);
+    console.table(matrizNaoBasica);
+
+    let iteracao = 1;
+    while(iteracao === 1){
+        console.log("FASE I, iteraçao:", iteracao);
+
+
+        iteracao++;
+    }
+
 }
