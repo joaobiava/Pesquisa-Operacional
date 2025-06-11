@@ -20,28 +20,6 @@ function main(){
 
     console.log('aqui está o determinante da matriz: ', determinante);
     console.log('aqui está mostrando o vetor da expressão principal após adicionar as novas variaveis: ', vetorExpressaoPrincipal)
-    
-    /*let matrizQuadrada = criarMatrizQuadrada(matrizCompleta);
-    console.log('\n aqui está a matriz quadrada:')
-    console.table(matrizQuadrada);
-
-    let identidade = criarMatrizIdentidade(matrizQuadrada);
-    console.log(`matriz identidade: `)
-    console.table(identidade);
-
-    let matrizInversa = criarMatrizInversa(matrizQuadrada, identidade);
-    console.log('aqui esta a matriz inversa da matriz quadrada:')
-    console.table(matrizInversa);
-
-    let matrizMultiplicada = multiplicaMatriz(matrizQuadrada, identidade);
-    console.log('matriz após multiplicação');
-    console.table(matrizMultiplicada);*/
-
-    /*let [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica] = criarMatrizBasica(matrizCompleta);
-    console.log("Matriz B = matriz básica (quadrada):");
-    console.table(matrizBasica);
-    console.log("Matriz N = matriz não básica (colunas restantes):");
-    console.table(matrizNaoBasica);*/
 
     //verifica se é necessário a fase 1 ou não, retorna true ou false com mais algumas alterações no vetorB e etc.
     if(verificaFaseI(array, vetorExpressaoPrincipal, valoresDesigualdade, matrizCompleta)[0]){
@@ -542,52 +520,71 @@ function faseII(matrizCompleta, matrizBasica, colunasParaBasica, matrizNaoBasica
     }
 }
 
-function faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao){
-    let m = matrizCompleta.length;
-    let n = matrizCompleta[0].length;
-    console.log(m, n);
+function faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, colunasParaBasicaOriginal, tipoOtimizacao){
+    let m = matrizCompleta.length; // número de restrições
+    let n = matrizCompleta[0].length; // número de variáveis (sem artificiais ainda)
 
-    //criação funcão objetivo
-    let variaveisTotais = n + m;
-    let funcaoObjetivo = Array(variaveisTotais).fill(0);
-    for (let i = n; i < variaveisTotais; i++) {
-        funcaoObjetivo[i] = 1; // Minimiza a soma das variáveis artificiais
-    }
-    console.log(funcaoObjetivo);
+    // Adiciona variáveis artificiais
+    let matrizComArtificiais = matrizCompleta.map((linha, i) => {
+        let artificiais = Array(m).fill(0);
+        artificiais[i] = 1; // adiciona a variável artificial na posição i
+        return [...linha, ...artificiais];
+    });
 
-    //restrições
-    for(let i = 0; i < m; i++){
-        for(let j = 0; j < m; j++){
-            if (i === j) {
-                matrizCompleta[i].push(1);
-            } else {
-                matrizCompleta[i].push(0);
-            }
+    // Função objetivo artificial: min w = soma das artificiais
+    let expressaoArtificial = Array(n).fill(0).concat(Array(m).fill(1));
+
+    // Índices das colunas
+    let colunasParaBasica = [];
+    let colunasParaNaoBasica = [];
+    for(let i = 0; i < n + m; i++){
+        if(i >= n){
+            colunasParaBasica.push(i); // artificiais na base inicial
+        } else {
+            colunasParaNaoBasica.push(i);
         }
     }
-    console.table(matrizCompleta)
 
-    const variaveisBasicas = [];
-    for (let i = 0; i < m; i++) {
-        variaveisBasicas.push(n + 1 + i);  // x_{n+1}, x_{n+2}, ..., x_{n+m}
-    }
-    const variaveisNaoBasicas = [];
-    for (let i = 0; i < n; i++) {
-        variaveisNaoBasicas.push(i + 1);  // x1, x2, ..., xn
-    }
-    console.log(variaveisBasicas)
-    console.log(variaveisNaoBasicas)
+    // Montagem de matrizes básicas e não básicas
+    let matrizBasica = matrizComArtificiais.map(linha => colunasParaBasica.map(i => linha[i]));
+    let matrizNaoBasica = matrizComArtificiais.map(linha => colunasParaNaoBasica.map(i => linha[i]));
 
-    let [matrizBasica, matrizNaoBasica] = criarMatrizBasica(matrizCompleta);
     console.table(matrizBasica);
     console.table(matrizNaoBasica);
 
-    let iteracao = 1;
-    while(iteracao === 1){
-        console.log("FASE I, iteraçao:", iteracao);
 
+    // Chamada para a fase II (como subfunção), mas com função objetivo artificial
+    let resultadoFase1 = faseII(matrizComArtificiais, matrizBasica, colunasParaBasica, matrizNaoBasica, colunasParaNaoBasica, valoresDesigualdade, expressaoArtificial, tipoOtimizacao
+    );
 
-        iteracao++;
+    if(resultadoFase1 === null || resultadoFase1[0] > 1e-6){
+        console.log("Problema inviável. Não existe solução básica viável inicial.");
+        return null;
     }
 
+    // Se nenhuma variável artificial está na base, remove elas da matriz e passa para a Fase II
+    let matrizSemArtificiais = matrizComArtificiais.map(linha => linha.slice(0, n));
+
+    // Identifica nova base sem artificiais
+    let novaColunasParaBasica = colunasParaBasica.filter(c => c < n);
+    let novaColunasParaNaoBasica = colunasParaNaoBasica.filter(c => c < n);
+    while(novaColunasParaBasica.length < m){
+        let candidato = novaColunasParaNaoBasica.shift();
+        novaColunasParaBasica.push(candidato);
+    }
+
+    let novaMatrizBasica = matrizSemArtificiais.map(linha => novaColunasParaBasica.map(i => linha[i]));
+    let novaMatrizNaoBasica = matrizSemArtificiais.map(linha => novaColunasParaNaoBasica.map(i => linha[i]));
+
+    // Agora sim, parte para a Fase II com a função original
+    return faseII(
+        matrizSemArtificiais,
+        novaMatrizBasica,
+        novaColunasParaBasica,
+        novaMatrizNaoBasica,
+        novaColunasParaNaoBasica,
+        valoresDesigualdade,
+        vetorExpressaoPrincipal,
+        tipoOtimizacao
+    );
 }
