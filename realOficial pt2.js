@@ -189,19 +189,6 @@ function subMatriz(matriz, linha, coluna) {
         .map(linhaAtual => linhaAtual.filter((_, j) => j !== coluna)); // remove a coluna 
 }
 
-function criarMatrizQuadrada(matrizCompleta){
-    let n = matrizCompleta.length;
-    //cria um array de tamanho de linhas da matriz completa, ent cria outro array e o preenche com 0, o que retorna um array de arrays
-    let matrizQuadrada = Array.from({ length: matrizCompleta.length }, () => Array(matrizCompleta.length).fill(0));
-
-    for(let i = 0; i < n; i++){
-        for(let j = 0; j < n; j++){
-            matrizQuadrada[i][j] = matrizCompleta[i][j]
-        }
-    }
-    return matrizQuadrada;
-}
-
 function criarMatrizIdentidade(matrizQuadrada){
     //cria um array de tamanho de linhas da matriz completa, ent cria outro array e o preenche com 0, o que retorna um array de arrays
     let identidade = Array.from({ length: matrizQuadrada.length }, () => Array(matrizQuadrada.length).fill(0));
@@ -278,58 +265,6 @@ function multiplicaMatriz(matriz1, matriz2){
         console.log('n da pra multiplicar chefe');
     }
     return matrizFinal;
-}
-
-function criarMatrizBasica(matriz) {
-    const numLinhas = matriz.length;
-    const numColunas = matriz[0].length;
-
-    const indicesColunas = [...Array(numColunas).keys()];
-    let colunasParaBasica = indicesColunas.slice(0, numLinhas);
-    let colunasParaNaoBasica = indicesColunas.slice(numLinhas);
-
-    let matrizBasica = matriz.map(linha => 
-        colunasParaBasica.map(i => linha[i])
-    );
-    console.log(matrizBasica)
-
-    let matrizNaoBasica = matriz.map(linha => 
-        colunasParaNaoBasica.map(i => linha[i])
-    );
-    console.log(matrizNaoBasica)
-
-    // Verifica determinante para caso igual a 0 na matriz basica, ele aleatoriza as colunas para que seja possivel a resolução
-    let tentativa = 0
-    while (calcularDeterminante(matrizBasica) === 0 && tentativa < 100) {
-        console.log("Matriz básica inicial tem determinante 0. Buscando outra base...");
-
-        //randomiza as colunas se determinante = 0
-        for (let i = indicesColunas.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [indicesColunas[i], indicesColunas[j]] = [indicesColunas[j], indicesColunas[i]];
-        }
-
-        console.log("veotr dos indices das colunas após aleatorização: ", indicesColunas);
-
-        colunasParaBasica = indicesColunas.slice(0, numLinhas);
-        matrizBasica = matriz.map(linha => 
-            colunasParaBasica.map(i => linha[i])
-        );
-        
-        colunasParaNaoBasica = indicesColunas.slice(numLinhas);
-        matrizNaoBasica = matriz.map(linha => 
-            colunasParaNaoBasica.map(i => linha[i])
-        );
-
-        tentativa++;
-    }
-
-    if(calcularDeterminante(matrizBasica) === 0){
-        console.log("nao foi encontrada nenhuma matriz básica com determinante diferente de 0");
-        return null;
-    }
-
-    return [matrizBasica, matrizNaoBasica, colunasParaBasica, colunasParaNaoBasica];
 }
 
 function verificaFaseI(array, vetorExpressaoPrincipal, valoresDesigualdade, matrizCompleta){
@@ -520,7 +455,7 @@ function faseII(matrizCompleta, matrizBasica, colunasParaBasica, matrizNaoBasica
     }
 }
 
-function faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, colunasParaBasicaOriginal, tipoOtimizacao){
+function faseI(matrizCompleta, valoresDesigualdade, vetorExpressaoPrincipal, tipoOtimizacao){
     let m = matrizCompleta.length; // número de restrições
     let n = matrizCompleta[0].length; // número de variáveis (sem artificiais ainda)
 
